@@ -6,7 +6,7 @@
 
 | ID | 主题 | 状态 | 优先级 | 决策门槛 |
 |---|---|---|---|---|
-| TD-001 | Rust 与 WinUI 3 的集成方式 | PENDING | 阻塞 UI scaffold | Windows 上完成 WinUI/XAML、Rust 调用、HWND interop 的可重复构建 spike。 |
+| TD-001 | Rust 与 WinUI 3 的集成方式 | PENDING（已授权 scaffold） | 高（正式定案仍阻塞） | 已允许以固定 commit `d5b6a1f68f4fdd0c79495954d162901ea90da4f4` 的 Reactor API 开始隔离 scaffold；正式采用前仍须完成本节剩余验证。禁止使用浮动 master。 |
 | TD-002 | WinUI 失败时的 UI 备选路线 | PENDING | 高 | 明确是否允许纯 Win32 或其他 UI 技术；未经批准不得自行更换目标。 |
 | TD-003 | Windows SDK、Rust target 与最低系统版本 | PENDING | 高 | 选定 windows-rs/Windows App SDK 版本并验证目标机器和 CI。 |
 | TD-004 | 安装/分发形式 | PENDING | 高 | 验证运行时依赖、升级、卸载、资产和启动项生命周期。 |
@@ -21,8 +21,8 @@
 
 ### 必须验证
 
-- Rust 工程可创建 WinUI 3 / Windows App SDK 窗口并运行 XAML UI。
-- XAML 构建步骤可在干净 Windows 环境和 CI 中重复执行。
+- Rust 工程可创建 WinUI 3 / Windows App SDK 窗口并运行原生控件；记录应用是否需要直接维护 XAML，以及资产/绑定如何生成。
+- 构建和绑定生成步骤可在干净 Windows 环境和 CI 中重复执行，不依赖个人 IDE 状态。
 - 能安全获取窗口 HWND，并实现无标题栏拖动、尺寸调整和窗口关闭/隐藏。
 - WinUI dispatcher 与后台 Rust 任务之间可以安全传递结果，并且关闭窗口时不发生 use-after-free / 悬空回调。
 - 能显示并接收传统 Windows Shell 托盘图标回调。
@@ -30,9 +30,20 @@
 
 ### 候选方案
 
-1. **Rust 直接使用 windows-rs 与 Windows App SDK/WinUI API**：最贴近目标，但需要验证 XAML 生成、生命周期和 interop 工程链。
-2. **Rust 核心 + 经评估的 WinUI Rust/XAML 封装**：可以减少胶水，但必须评估维护状态、API 覆盖、打包和 unsafe 边界。
-3. **经批准的替代 UI**：仅在 spike 证明目标方案不可行并经用户批准后考虑；不得把它当作等价替换。
+1. **windows-reactor（优先调查）**：位于 `microsoft/windows-rs` 仓库的 Rust/WinUI 组件框架；master 样例覆盖托盘图标、多窗口、窗口位置和虚拟列表。文档标为 preview，不等同于已批准生产依赖；并且这些样例 API 不一定存在于 crates.io 固定发布版。验证步骤见 [`WINDOWS_REACTOR_POC.md`](WINDOWS_REACTOR_POC.md)。
+2. **Winio WinUI backend**：Rust 异步 GUI runtime 的 WinUI backend，可作为 Reactor POC 未通过时的 Rust/WinUI 备选；需单独评估其 API、运行时与窗口/托盘互操作。
+3. **直接使用 windows-rs 与 Windows App SDK/WinUI API**：底层控制最多，但 XAML、应用生命周期和部署 interop 风险较高；仅在有具体缺口且经 spike 验证后采用。
+4. **经批准的替代 UI/host**：仅在候选方案无法满足需求并经用户批准后考虑；不得静默更换目标。
+
+### 已有验证证据（2026-10-11）
+
+1. crates.io `windows-reactor = 0.100.0` 隔离 POC：通过 fmt/check/clippy/test，并启动主窗；组件窗、后台目录刷新和设置草稿可运行。该发布版没有 `Application`、`ApplicationView`、通知图标菜单、`App::run_application` 或 placement API，因此它不验证 app-level 托盘/placement 能力。详见 [`poc/windows-reactor/README.md`](../poc/windows-reactor/README.md)。
+2. Commit-pinned POC：固定 `windows-rs` revision `d5b6a1f68f4fdd0c79495954d162901ea90da4f4`。`Cargo.lock` 锁定同一 SHA；在 Windows x64/MSVC 上通过 fmt/check/clippy/test/build，并实测创建主窗和 placement 窗、读取物理像素 placement、关闭 placement 后主窗仍在，以及用 POC 按钮关闭主窗后进程仍存活。
+3. **负责人手动观察**：负责人报告该 POC 的通知图标显示及右键菜单工作正常。该观察补充了我的自动化无法确认托盘 UI 的限制；但没有单独证明菜单各项行为、Hide、双击、Explorer 重启恢复或干净机器部署。
+
+**授权范围**：负责人已授权开始应用 scaffold，可以把上述完整 SHA 作为当前试验基线。此授权不是对 preview API 的无条件/永久采用，也不是 TD-001 完成。`d5b6…` 版本没有独立 Hide API；当前 POC 的关闭动作销毁窗口组件，但应用资源/进程由仍声明的托盘保持存活。产品 FR-TRAY-01/02 要求的 Hide（保留可恢复窗口状态）仍须在正式交互设计或后续 spike 中明确，不能拿 close/reopen 冒充 Hide。
+
+剩余决策门槛：Explorer `TaskbarCreated` 恢复和错误路径；托盘各项及双击的逐项确认；Hide 与 close 的产品语义；DPI、负坐标多显示器、显示器断开后的 placement 策略；整窗透明度/材质；无开发工具干净机器上的 Windows App Runtime 部署；正式 crate/版本与升级策略。当前详细记录见 [`poc/windows-reactor-master/README.md`](../poc/windows-reactor-master/README.md)、[`poc/windows-reactor/README.md`](../poc/windows-reactor/README.md) 和 [`WINDOWS_REACTOR_POC.md`](WINDOWS_REACTOR_POC.md)。
 
 ### Spike 通过标准
 
@@ -129,7 +140,7 @@ WinUI 是产品方向，不意味着任何 Rust UI 绑定都已经选定。若 W
 
 ## 11. TD-010：后台任务与生命周期
 
-可选择 async runtime 或标准线程/任务机制，但应避免仅为少量 IO 引入不必要复杂度。无论选型，必须定义：
+可选择 async runtime 或标准线程/任务机制，但应避免仅为少量 IO 引入不必要复杂度。当前应用模型以 `PlatformCommand` / `PlatformResult` 将阻塞平台操作与 UI 状态更新分开；这是线程无关的边界，不代表已经选定 executor 或 async runtime。无论选型，必须定义：
 
 - UI 线程如何发起工作并接收结果；
 - 刷新任务取消与过期结果判定；

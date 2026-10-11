@@ -10,6 +10,14 @@
 - 开始修改前检查项目布局与工作区状态。遵循仓库已经确定的 Cargo workspace/crate 组织；如果工程尚未创建，不要猜测其路径、target triple、MSRV、UI 绑定或分发形式，先确认相关技术决策。
 - 需求文档中的“必需”项应保持；标记为“待决定/后续”的内容不得擅自当成 MVP 需求实现，也不得伪装成已实现功能。
 
+### 当前 UI POC 基线（2026-10-11）
+
+- 项目负责人已授权开始应用 scaffold，试验 API 基线为 `windows-rs` 仓库 commit `d5b6a1f68f4fdd0c79495954d162901ea90da4f4` 中的 `windows-reactor`；POC crate 在 `poc/windows-reactor-master/`，必须使用其完整 Git `rev` 和 `Cargo.lock`。不得改用浮动 `master` 或悄悄回退到 crates.io `windows-reactor = 0.100.0`（后者没有该 commit 的 Application/NotifyIcon/placement API）。
+- **仅授权继续构建 scaffold，不代表 TD-001 正式选型已 ACCEPTED。** Reactor 仍为 preview；TD-001 状态及未完成项见 `docs/TECHNICAL_DECISIONS.md`。API/版本更改须更新锁文件、复跑 POC 验证并记录理由。
+- 负责人报告其手动观察到该 POC 的通知图标和右键菜单工作正常；这是有归属的人工验证，不等同于自动化、Explorer 重启、所有菜单动作、双击激活或干净部署通过。不要重复表述为这些行为都已验证。
+- 该 revision 没有独立的 hide-window 命令；关闭窗口会销毁窗口组件，应用声明/应用级状态可以独立存活并重新创建窗口。不要把 close/reopen 描述为“隐藏后原实例恢复”。如实现产品 Show/Hide，需单独设计、验证并说明应用状态、窗口实例和位置如何保留。
+- `WindowPlacement` 是外窗物理屏幕像素坐标/尺寸（允许负坐标），client size 是 DIP；Reactor 的初始 placement 只在首次创建窗口时读取。DPI/多屏/显示器拔除后的恢复策略仍属待验证，不得仅凭 API 类型宣称符合产品需求。
+
 ## 2. 架构与依赖边界
 
 采用“领域与应用逻辑在内，平台与 UI 适配在外”的依赖方向。建议按职责组织，具体目录可依据已批准的工程布局调整：

@@ -1,0 +1,8 @@
+[package]
+name = "windows-reactor-master-poc"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+windows-reactor = { git = "https://github.com/microsoft/windows-rs.git", rev = "d5b6a1f68f4fdd0c79495954d162901ea90da4f4" }
