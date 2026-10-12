@@ -1,15 +1,20 @@
 use windows_reactor::*;
 
-use crate::{main_window::MainWindow, placement_window::PlacementWindow};
+use crate::{
+    chrome_grid_window::ChromeGridWindow, main_window::MainWindow,
+    placement_window::PlacementWindow,
+};
 
 const MAIN_WINDOW_KEY: &str = "main";
 const PLACEMENT_WINDOW_KEY: &str = "placement";
+const CHROME_GRID_WINDOW_KEY: &str = "chrome-grid";
 const TRAY_ICON_KEY: &str = "tray";
 
 #[derive(Clone)]
 pub(crate) enum Message {
     ShowMain,
     ShowPlacement,
+    ShowChromeGrid,
     Menu(Key),
     PlacementChanged(WindowPlacement),
 }
@@ -32,9 +37,11 @@ impl Application for TrayApp {
         match message {
             Message::ShowMain => context.show_window(MAIN_WINDOW_KEY),
             Message::ShowPlacement => context.show_window(PLACEMENT_WINDOW_KEY),
+            Message::ShowChromeGrid => context.show_window(CHROME_GRID_WINDOW_KEY),
             Message::Menu(key) => match key.as_str() {
                 Some("main") => context.show_window(MAIN_WINDOW_KEY),
                 Some("placement") => context.show_window(PLACEMENT_WINDOW_KEY),
+                Some("chrome-grid") => context.show_window(CHROME_GRID_WINDOW_KEY),
                 Some("exit") => context.exit(),
                 _ => {}
             },
@@ -55,6 +62,7 @@ impl Application for TrayApp {
                 MAIN_WINDOW_KEY,
                 MainWindowInput {
                     open_placement: context.callback(|()| Message::ShowPlacement),
+                    open_chrome_grid: context.callback(|()| Message::ShowChromeGrid),
                 },
             )
             .window::<PlacementWindow>(
@@ -64,6 +72,7 @@ impl Application for TrayApp {
                     on_placement: context.callback(Message::PlacementChanged),
                 },
             )
+            .window::<ChromeGridWindow>(CHROME_GRID_WINDOW_KEY, ())
             .notify_icon(
                 TRAY_ICON_KEY,
                 NotifyIcon::new(icon_path)
@@ -73,6 +82,7 @@ impl Application for TrayApp {
                         [
                             MenuItem::item("main", "Show main window"),
                             MenuItem::item("placement", "Show placement test"),
+                            MenuItem::item("chrome-grid", "Borderless / icon grid test"),
                             MenuItem::separator("separator"),
                             MenuItem::item("exit", "Exit"),
                         ],
@@ -85,6 +95,7 @@ impl Application for TrayApp {
 #[derive(Clone, PartialEq)]
 pub(crate) struct MainWindowInput {
     pub(crate) open_placement: Callback<()>,
+    pub(crate) open_chrome_grid: Callback<()>,
 }
 
 #[derive(Clone, PartialEq)]

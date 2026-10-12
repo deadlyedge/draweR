@@ -54,6 +54,7 @@ name = "windows-reactor-master-poc"
 version = "0.1.0"
 dependencies = [
  "windows-reactor",
+ "windows-sys",
 ]
 
 [[package]]
@@ -75,6 +76,14 @@ dependencies = [
 
 [[package]]
 name = "windows-strings"
+version = "0.100.0"
+source = "git+https://github.com/microsoft/windows-rs.git?rev=d5b6a1f68f4fdd0c79495954d162901ea90da4f4#d5b6a1f68f4fdd0c79495954d162901ea90da4f4"
+dependencies = [
+ "windows-link",
+]
+
+[[package]]
+name = "windows-sys"
 version = "0.100.0"
 source = "git+https://github.com/microsoft/windows-rs.git?rev=d5b6a1f68f4fdd0c79495954d162901ea90da4f4#d5b6a1f68f4fdd0c79495954d162901ea90da4f4"
 dependencies = [

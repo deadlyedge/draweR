@@ -1,4 +1,7 @@
+#![cfg_attr(not(test), windows_subsystem = "windows")]
+
 mod app;
+mod chrome_grid_window;
 mod main_window;
 mod placement_window;
 

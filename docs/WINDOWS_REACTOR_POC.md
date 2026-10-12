@@ -108,8 +108,9 @@ POC 位于 [`poc/windows-reactor-master/`](../poc/windows-reactor-master/)，其
 
 1. POC 中 main 和 placement 两个 keyed 窗口可按需打开；关闭 placement 后主窗保持运行。关闭主窗后的进程存活也已验证；实际托盘触发重新打开、隐藏语义和抽屉切换仍未验证。
 2. placement 回调在当前主机报告 `(1020, 448)`、`1306 × 791` physical pixels；尚未实测负坐标、多显示器、不同 DPI、断开屏幕后恢复及保存后重新打开是否符合产品策略。
-3. 验证边框样式、标题栏、拖动、resize grip 和主窗口/抽屉窗口相邻行为。
-4. 重点测当前设计依赖的窗口透明度：Alpha 参数是否能产生预期的整窗效果，文字和图标是否仍可读。分别记录普通窗口透明、半透明背景/材质两种结果，不能将它们当作等价功能。
+3. **无边框/图标网格测试（2026-10-12）**：固定 commit POC 的主窗按钮/托盘菜单可打开 ApplicationView keyed `chrome-grid` 窗口。自定义 WinUI `TitleBar` 可显示；按钮通过 HWND interop 清/恢复 `WS_CAPTION | WS_THICKFRAME` 并强制 frame refresh。最终测试窗 UI Automation 观察到 48 个图像图块；Win32 resize 探针调整窗口宽度 1666→1346 px 时列数 6→5，恢复宽度后回到 6。去框后系统 Minimize/Maximize/Close 消失，恢复后重现。去框同时禁用 native resize；没有验证 drag、resize grip、自定义系统按钮、DPI/多屏、抽屉相邻行为。GridView 为本地图像样例，不含 Shell 图标/目录浏览。
+4. **控制台窗口**：POC bin 入口设置 GUI subsystem；最终 Windows 构建 PE subsystem 为 GUI（2），启动时没有附加控制台窗口。
+5. 重点测当前设计依赖的窗口透明度：Alpha 参数是否能产生预期的整窗效果，文字和图标是否仍可读。分别记录普通窗口透明、半透明背景/材质两种结果，不能将它们当作等价功能。
 
 ### E. draweR 关键交互
 

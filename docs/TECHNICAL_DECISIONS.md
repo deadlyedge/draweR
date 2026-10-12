@@ -35,11 +35,13 @@
 3. **直接使用 windows-rs 与 Windows App SDK/WinUI API**：底层控制最多，但 XAML、应用生命周期和部署 interop 风险较高；仅在有具体缺口且经 spike 验证后采用。
 4. **经批准的替代 UI/host**：仅在候选方案无法满足需求并经用户批准后考虑；不得静默更换目标。
 
-### 已有验证证据（2026-10-11）
+### 已有验证证据（更新至 2026-10-12）
 
 1. crates.io `windows-reactor = 0.100.0` 隔离 POC：通过 fmt/check/clippy/test，并启动主窗；组件窗、后台目录刷新和设置草稿可运行。该发布版没有 `Application`、`ApplicationView`、通知图标菜单、`App::run_application` 或 placement API，因此它不验证 app-level 托盘/placement 能力。详见 [`poc/windows-reactor/README.md`](../poc/windows-reactor/README.md)。
 2. Commit-pinned POC：固定 `windows-rs` revision `d5b6a1f68f4fdd0c79495954d162901ea90da4f4`。`Cargo.lock` 锁定同一 SHA；在 Windows x64/MSVC 上通过 fmt/check/clippy/test/build，并实测创建主窗和 placement 窗、读取物理像素 placement、关闭 placement 后主窗仍在，以及用 POC 按钮关闭主窗后进程仍存活。
 3. **负责人手动观察**：负责人报告该 POC 的通知图标显示及右键菜单工作正常。该观察补充了我的自动化无法确认托盘 UI 的限制；但没有单独证明菜单各项行为、Hide、双击、Explorer 重启恢复或干净机器部署。
+4. **无边框/图标网格 POC（2026-10-12）**：固定 revision 现包含独立 keyed `chrome-grid` 测试窗，可从主窗和托盘菜单打开；使用同 SHA 的 `windows-sys` 试验依赖。最终构建上 UI Automation 观察到 48 个本地图像图块，Win32 resize 探针调整窗口宽度 1666→1346 px 时列数 6→5，恢复宽度后回到 6。`WS_CAPTION | WS_THICKFRAME` 去除后系统 caption buttons 消失、恢复后回来。此证明需 Win32 style interop，不是 Reactor TitleBar 的单一配置；去框后原生 resize 和系统按钮均不可用，不能据此宣称拖动/resize 产品要求已满足。Shell 图标获取和真实文件浏览未验证。详见该 POC README。
+5. **控制台窗口**：入口设 `windows_subsystem = "windows"`；最终 POC 构建的 PE subsystem 为 GUI (2)，启动时未出现独立控制台窗口。
 
 **授权范围**：负责人已授权开始应用 scaffold，可以把上述完整 SHA 作为当前试验基线。此授权不是对 preview API 的无条件/永久采用，也不是 TD-001 完成。`d5b6…` 版本没有独立 Hide API；当前 POC 的关闭动作销毁窗口组件，但应用资源/进程由仍声明的托盘保持存活。产品 FR-TRAY-01/02 要求的 Hide（保留可恢复窗口状态）仍须在正式交互设计或后续 spike 中明确，不能拿 close/reopen 冒充 Hide。
 

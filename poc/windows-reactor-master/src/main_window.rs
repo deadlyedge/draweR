@@ -5,16 +5,25 @@ use crate::app::MainWindowInput;
 #[derive(Clone, Copy)]
 pub(crate) enum Message {
     CloseThisWindow,
+    OpenChromeGrid,
 }
 
-pub(crate) struct MainWindow;
+pub(crate) struct MainWindow {
+    open_chrome_grid: Callback<()>,
+}
 
 impl Component for MainWindow {
     type Input = MainWindowInput;
     type Message = Message;
 
-    fn create(_: &Self::Input, _: &ComponentContext<Self>) -> Self {
-        Self
+    fn create(input: &Self::Input, _: &ComponentContext<Self>) -> Self {
+        Self {
+            open_chrome_grid: input.open_chrome_grid.clone(),
+        }
+    }
+
+    fn input_changed(&mut self, input: &Self::Input, _: &ComponentContext<Self>) {
+        self.open_chrome_grid = input.open_chrome_grid.clone();
     }
 
     fn update(&mut self, message: Self::Message, context: &ComponentContext<Self>) {
@@ -22,6 +31,7 @@ impl Component for MainWindow {
             Message::CloseThisWindow => {
                 let _ = context.close_window();
             }
+            Message::OpenChromeGrid => self.open_chrome_grid.call(()),
         }
     }
 
@@ -39,6 +49,9 @@ impl Component for MainWindow {
                     Button::new()
                         .on_click(input.open_placement.clone())
                         .content("Open window placement test"),
+                    Button::new()
+                        .on_click(context.message(Message::OpenChromeGrid))
+                        .content("Test borderless + Explorer icon grid"),
                     Button::new()
                         .on_click(context.message(Message::CloseThisWindow))
                         .content("Close this window (tray should remain)"),

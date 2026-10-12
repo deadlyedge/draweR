@@ -10,13 +10,15 @@
 - 开始修改前检查项目布局与工作区状态。遵循仓库已经确定的 Cargo workspace/crate 组织；如果工程尚未创建，不要猜测其路径、target triple、MSRV、UI 绑定或分发形式，先确认相关技术决策。
 - 需求文档中的“必需”项应保持；标记为“待决定/后续”的内容不得擅自当成 MVP 需求实现，也不得伪装成已实现功能。
 
-### 当前 UI POC 基线（2026-10-11）
+### 当前 UI POC 基线（更新至 2026-10-12）
 
 - 项目负责人已授权开始应用 scaffold，试验 API 基线为 `windows-rs` 仓库 commit `d5b6a1f68f4fdd0c79495954d162901ea90da4f4` 中的 `windows-reactor`；POC crate 在 `poc/windows-reactor-master/`，必须使用其完整 Git `rev` 和 `Cargo.lock`。不得改用浮动 `master` 或悄悄回退到 crates.io `windows-reactor = 0.100.0`（后者没有该 commit 的 Application/NotifyIcon/placement API）。
 - **仅授权继续构建 scaffold，不代表 TD-001 正式选型已 ACCEPTED。** Reactor 仍为 preview；TD-001 状态及未完成项见 `docs/TECHNICAL_DECISIONS.md`。API/版本更改须更新锁文件、复跑 POC 验证并记录理由。
 - 负责人报告其手动观察到该 POC 的通知图标和右键菜单工作正常；这是有归属的人工验证，不等同于自动化、Explorer 重启、所有菜单动作、双击激活或干净部署通过。不要重复表述为这些行为都已验证。
 - 该 revision 没有独立的 hide-window 命令；关闭窗口会销毁窗口组件，应用声明/应用级状态可以独立存活并重新创建窗口。不要把 close/reopen 描述为“隐藏后原实例恢复”。如实现产品 Show/Hide，需单独设计、验证并说明应用状态、窗口实例和位置如何保留。
 - `WindowPlacement` 是外窗物理屏幕像素坐标/尺寸（允许负坐标），client size 是 DIP；Reactor 的初始 placement 只在首次创建窗口时读取。DPI/多屏/显示器拔除后的恢复策略仍属待验证，不得仅凭 API 类型宣称符合产品需求。
+- Reactor `TitleBar` 是 WinUI 内容标题栏，不等于移除 HWND native caption/frame。若使用 HWND style interop 移除 `WS_CAPTION | WS_THICKFRAME`，应预期系统标题栏按钮和 native resize 同时不可用；未另外实现并验证 drag/resize hit-testing 与关闭/恢复控件前，不得宣称满足无边框窗口交互需求。POC 的实测证据与限制见 `poc/windows-reactor-master/README.md`。
+- POC 可执行文件通过 `windows_subsystem = "windows"` 使用 GUI subsystem；构建后检查 PE subsystem 为 GUI (2)，并在交互桌面启动确认无独立控制台。GUI subsystem 下不可依赖 `eprintln!` 作为可见错误反馈；正式应用应通过统一日志和用户可见的可恢复错误呈现诊断。
 
 ## 2. 架构与依赖边界
 
@@ -85,6 +87,9 @@ cargo clippy --workspace --all-targets -- -D warnings
 - 使用脱敏配置 fixture 验证兼容性；不得把用户真实路径、机器名或个人数据加入测试、快照或日志。
 - 对设置保存/回滚、抽屉切换、刷新取消、缺失目录和窗口尺寸持久化添加逻辑测试或可重复集成测试。
 - 托盘、Shell 图标、默认应用启动、窗口拖动、DPI、多显示器、文件夹选择等 Windows 行为应安排 Windows 环境验证；纯 Linux 测试不能证明这些功能通过。
+- UI / HWND / Shell 行为的证据应明确标注为单元测试、UI Automation、人工观察或源码/API 检查；一种证据不能替代另一种。例如托盘图标人工可见不证明菜单各项、双击、Explorer 重启恢复或干净机器部署；UI Automation 未枚举到托盘也不必然证明图标不存在。
+- 对响应式图标网格，使用真实窗口调整尺寸并通过 UI Automation 或等效方式计数/量测条目与列数；记录窗口宽度、列数、DPI/显示器及运行环境。布局数据是 host-specific 观察；代码/布局变化后应重跑，不把先前临时 spike 的结果当作当前实现验证。使用本地图像样例只能验证布局，不能宣称 Shell 图标提取、文件枚举或 Explorer 等价性已通过。
+- 测试 keyed window 的打开和关闭时，区分关闭组件、应用进程存活、重新创建窗口和真正隐藏/恢复原窗口实例及状态；不得把 close/reopen 记为 Hide/Show。
 - 修改窗口生命周期、设置格式、unsafe/COM、并发写入或打包时，增加针对性测试或验证说明。
 - 文档-only 变更无需构建；代码或依赖变更应报告实际运行的命令及结果。
 
